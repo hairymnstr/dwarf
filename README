@@ -1,0 +1,5 @@
+DWARF: A GUI for pk2cmd in Linux
+
+pk2cmd is a program for programming Microchip PIC microcontrollers with the Microchip PICKit2 programmer.  It must be installed separately and can be found on Microchip's website.
+
+The program is a simple Python script with few features at the moment, it automates the most common tasks with the PICKit2 so that the user does not need to remember the lengthy command line arguments.
