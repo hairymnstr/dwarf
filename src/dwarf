@@ -106,7 +106,15 @@ class GUI_Controller:
         self.program_btn.set_image(self.program_pb)
         self.program_btn.connect("clicked", self.program_cb)
         self.button_layout.pack_start(self.program_btn)
-
+        
+        # Read
+        self.read_pb = gtk.Image()
+        self.read_pb.set_from_file("data/read.png")
+        self.read_btn = gtk.Button()
+        self.read_btn.set_image(self.read_pb)
+        self.read_btn.connect("clicked", self.read_cb)
+        self.button_layout.pack_start(self.read_btn)
+        
         # run
         self.run_pb = gtk.Image()
         self.run_pb.set_from_file("data/run.png")
@@ -271,6 +279,14 @@ class GUI_Controller:
             self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
         if self.verbosity:
             print output
+        return
+
+    def read_cb(self, *kw):
+        """ Read from the device """
+        pr = subprocess.Popen(PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -GFdump.hex",shell=True, stdout=subprocess.PIPE)
+        pr.wait()
+        if self.verbosity:
+                print PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -GF/dump.hex"
         return
 
     def run_cb(self, *kw):
