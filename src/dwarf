@@ -25,6 +25,10 @@ import os, sys, subprocess
 
 VERSION = "0.1"
 
+# define the command here.
+# If you want to run the pk2cmd app as sudo add sudo here
+PK2CMD = "pk2cmd"
+
 class GUI_Controller:
     """ The GUI class is the controller for our application """
     def __init__(self,verbosity):
@@ -252,8 +256,8 @@ class GUI_Controller:
 
         # now do the actual programming bit
         if self.verbosity:
-            print "pk2cmd -P%s -F%s -M" % (self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()), hex_name)
-        pr = subprocess.Popen("pk2cmd -P%s -F%s -M" % (self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()),hex_name.replace(" ","\\ ")), shell=True, stdout = subprocess.PIPE)
+            print PK2CMD + " -P%s -F%s -M" % (self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()), hex_name)
+        pr = subprocess.Popen("%s -P%s -F%s -M" % (PK2CMD, self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()),hex_name.replace(" ","\\ ")), shell=True, stdout = subprocess.PIPE)
         pr.wait()
         output = pr.stdout.read()
         self.status_msg = output
@@ -272,18 +276,18 @@ class GUI_Controller:
     def run_cb(self, *kw):
         """ Turn power on and MCLR off to let the project run powered by the
               PicKit """
-        pr = subprocess.Popen("pk2cmd -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -R -T", shell=True, stdout=subprocess.PIPE)
+        pr = subprocess.Popen(PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -R -T", shell=True, stdout=subprocess.PIPE)
         pr.wait()
         if self.verbosity:
-            print "pk2cmd -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -R -T"
+            print PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -R -T"
         return
 
     def stop_cb(self, *kw):
         """ Pause the PIC again with MCLR asserted and power off. """
-        pr = subprocess.Popen("pk2cmd -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()), shell=True, stdout=subprocess.PIPE)
+        pr = subprocess.Popen(PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()), shell=True, stdout=subprocess.PIPE)
         pr.wait()
         if self.verbosity:
-            print "pk2cmd -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter())
+            print PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter())
         return
 
     def file_choose_cb(self, *kw):
@@ -310,7 +314,7 @@ class GUI_Controller:
     def connect_pk2(self, auto=True):
         """ Try to connect to the pic-kit and identify the device attached. """
         if auto:
-            cmd = "pk2cmd -P"
+            cmd = PK2CMD + " -P"
         else:
             if self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) == "(none)":
                 self.status_label.set_text("Can't manually connect without device specified.")
@@ -320,7 +324,7 @@ class GUI_Controller:
             elif self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()).find(" ") > -1:
                 self.show_status("Not a valid chip model, don't use SPACE","red",False)
                 return
-            cmd = "pk2cmd -P" + self.model.get_text(self.model.get_start_iter(),self.model.get_end_iter()) + " -I"
+            cmd = PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(),self.model.get_end_iter()) + " -I"
         pr = subprocess.Popen(cmd, shell=True, stdout = subprocess.PIPE)
         pr.wait()
         
