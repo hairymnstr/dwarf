@@ -89,15 +89,15 @@ class GUI_Controller:
         self.button_layout.pack_start(self.manual_btn)
 
         # compile
-        self.compile_pb = gtk.Image()
-        self.compile_pb.set_from_file("data/compile.png")
-        self.compile_btn = gtk.Button()
-        self.compile_btn.set_image(self.compile_pb)
-        self.compile_btn.connect("clicked", self.compile_cb)
-        self.button_layout.pack_start(self.compile_btn)
+#        self.compile_pb = gtk.Image()
+#        self.compile_pb.set_from_file("data/compile.png")
+#        self.compile_btn = gtk.Button()
+#        self.compile_btn.set_image(self.compile_pb)
+#        self.compile_btn.connect("clicked", self.compile_cb)
+#        self.button_layout.pack_start(self.compile_btn)
 
         # set compile to disabled to start with, enable after file
-        self.compile_btn.set_sensitive(False)
+#        self.compile_btn.set_sensitive(False)
         
         # program
         self.program_pb = gtk.Image()
@@ -182,53 +182,53 @@ class GUI_Controller:
         gtk.main()
         return
 
-    def compile_cb(self, *kw):
-        """ compile current project """
-        if self.source_file and os.path.isfile(self.source_file):
-            # no point running compile if there isn't a file.
-            pr = subprocess.Popen("gpasm " + self.source_file.replace(" ","\\ "), shell=True, stdout=subprocess.PIPE)
-            pr.wait()
-            output = pr.stdout.read()
-
-            errors = []
-            warnings = []
-            # now we have run the compiler, need to parse the output and display warnings/errors
-            for l in output.splitlines():
-                if not l == "":
-                    # first see whether it is an error or a warning
-                    if l.find("Error") > -1:
-                        errors.append(l)
-                    elif l.find("Warning") > -1:
-                        warnings.append(l)
-                    else:
-                        print "Unhandled output type:", l
-
-            self.status_msg = "-"*80 + "\n" + output + "-"*80 + "\nWarnings: %d, Errors: %d\n" % (len(warnings), len(errors)) + "-"*80 
-            # now present the information with the status label
-            if len(warnings) + len(errors) == 0:
-                self.status_label.set_text("Compiled OK")
-                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0,65535,0))
-                self.status_btn.set_sensitive(False)
-            elif len(warnings) > 0 and len(errors) == 0:
-                self.status_label.set_text("%d Warnings, 0 Errors, click for details" % len(warnings))
-                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535,65535,0))
-                self.status_btn.set_sensitive(True)
-            elif len(errors) > 0:
-                self.status_label.set_text("%d Warnings, %d Errors, click for details" % (len(warnings), len(errors)))
-                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535,0,0))
-                self.status_btn.set_sensitive(True)
-            if self.verbosity:
-                print "gpasm " + self.source_file.replace(" ","\\ ")
-                print "-"*80
-                print output
-                print "-"*80
-                print "Warnings:", len(warnings), "Errors:", len(errors)
-                print "-"*80
-        else:
-            self.status_label.set_text("Select valid source file.")
-            self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
-            self.status_btn.set_sensitive(False)
-        return
+#    def compile_cb(self, *kw):
+#        """ compile current project """
+#        if self.source_file and os.path.isfile(self.source_file):
+#            # no point running compile if there isn't a file.
+#            pr = subprocess.Popen("gpasm " + self.source_file.replace(" ","\\ "), shell=True, stdout=subprocess.PIPE)
+#            pr.wait()
+#            output = pr.stdout.read()
+#
+#            errors = []
+#            warnings = []
+#            # now we have run the compiler, need to parse the output and display warnings/errors
+#            for l in output.splitlines():
+#                if not l == "":
+#                    # first see whether it is an error or a warning
+#                    if l.find("Error") > -1:
+#                        errors.append(l)
+#                    elif l.find("Warning") > -1:
+#                        warnings.append(l)
+#                    else:
+#                        print "Unhandled output type:", l
+#
+#            self.status_msg = "-"*80 + "\n" + output + "-"*80 + "\nWarnings: %d, Errors: %d\n" % (len(warnings), len(errors)) + "-"*80 
+#            # now present the information with the status label
+#            if len(warnings) + len(errors) == 0:
+#                self.status_label.set_text("Compiled OK")
+#                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0,65535,0))
+#                self.status_btn.set_sensitive(False)
+#            elif len(warnings) > 0 and len(errors) == 0:
+#                self.status_label.set_text("%d Warnings, 0 Errors, click for details" % len(warnings))
+#                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535,65535,0))
+#                self.status_btn.set_sensitive(True)
+#            elif len(errors) > 0:
+#                self.status_label.set_text("%d Warnings, %d Errors, click for details" % (len(warnings), len(errors)))
+#                self.status_bg.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535,0,0))
+#                self.status_btn.set_sensitive(True)
+#            if self.verbosity:
+#                print "gpasm " + self.source_file.replace(" ","\\ ")
+#                print "-"*80
+#                print output
+#                print "-"*80
+#                print "Warnings:", len(warnings), "Errors:", len(errors)
+#                print "-"*80
+#        else:
+#            self.status_label.set_text("Select valid source file.")
+#            self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
+#            self.status_btn.set_sensitive(False)
+#        return
 
     def auto_cb(self, *kw):
         """ auto-connect to the pickit and detect the attached PIC """
@@ -283,11 +283,41 @@ class GUI_Controller:
 
     def read_cb(self, *kw):
         """ Read from the device """
-        pr = subprocess.Popen(PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -GFdump.hex",shell=True, stdout=subprocess.PIPE)
-        pr.wait()
-        if self.verbosity:
-                print PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + " -GF/dump.hex"
+        # make a file select dialog popup to select where to save to
+        self.save_chooser = gtk.FileChooserDialog("Save HEX dump to...", 
+                                                  self.root, 
+                                                  gtk.FILE_CHOOSER_ACTION_SAVE, 
+                                                  (gtk.STOCK_OPEN, gtk.RESPONSE_ACCEPT, 
+                                                   gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+        self.save_chooser.connect("response", self.read_selected_cb)
+        self.save_chooser.set_do_overwrite_confirmation(True)
+        self.save_chooser.show()
+        self.root.set_sensitive(False)
         return
+
+    def read_selected_cb(self, widget, response_id):
+      if response_id in (gtk.RESPONSE_CLOSE, -4):
+        self.root.set_sensitive(True)
+        del self.save_chooser
+      elif response_id == gtk.RESPONSE_CANCEL:
+        self.root.set_sensitive(True)
+        self.save_chooser.destroy()
+        del self.save_chooser
+      elif response_id == gtk.RESPONSE_ACCEPT:
+        if self.verbosity:
+          print PK2CMD + " -P" + self.model.get_text(
+            self.model.get_start_iter(),
+            self.model.get_end_iter()) + " -GF" + self.save_chooser.get_filename()
+        pr = subprocess.Popen(
+          (PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) +
+           " -GF" + self.save_chooser.get_filename()),
+           shell = True,
+           stdout = subprocess.PIPE)
+        pr.wait()
+        self.save_chooser.destroy()
+        del self.save_chooser
+        self.root.set_sensitive(True)
+      return
 
     def run_cb(self, *kw):
         """ Turn power on and MCLR off to let the project run powered by the
@@ -310,13 +340,8 @@ class GUI_Controller:
         """ Update the local variable containing the filename. """
         self.source_file = self.source_select.get_filename()
         self.root.set_title("Dwarf %s: " % VERSION + self.source_file.split("/")[-1])
-        if self.source_select.get_filename()[-4:] == ".hex":
-            self.compile_btn.set_sensitive(False)
-            # do status
-            self.show_status("OK, selected a binary file, compile disabled", "green", False)
-        else:
-            self.compile_btn.set_sensitive(True)
-            self.show_status("OK, selected source file.", "green", False)
+        # do status
+        self.show_status("OK, selected a binary file.", "green", False)
         if self.verbosity:
             print "File chosen:", self.source_select.get_filename()
         return
