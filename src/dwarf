@@ -29,16 +29,17 @@ VERSION = "0.1"
 # If you want to run the pk2cmd app as sudo add sudo here
 PK2CMD = "pk2cmd"
 
-class GUI_Controller:
-    """ The GUI class is the controller for our application """
+class MainWindow(gtk.Window):
+#class GUI_Controller:
+    """ Main toolbar-like small window with buttons """
     def __init__(self,verbosity):
         self.verbosity = verbosity
         # setup the main window
-        self.root = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
-        self.root.set_title("Dwarf %s" % VERSION)
+        gtk.Window.__init__(self, type=gtk.WINDOW_TOPLEVEL)
+        self.set_title("Dwarf %s" % VERSION)
 
-        self.root.set_icon_from_file("data/icon.png")
-        self.root.connect("destroy", self.destroy_cb)
+        self.set_icon_from_file("data/icon.png")
+        self.connect("destroy", self.destroy_cb)
         self.layout=gtk.VBox()
 
         self.bar_layout = gtk.HBox()
@@ -48,10 +49,10 @@ class GUI_Controller:
         self.source_select = gtk.FileChooserButton("Source File")
         self.source_select.set_current_folder(os.path.expanduser("~/"))
         self.source_select.set_size_request(150,-1)
-        self.filter_asm = gtk.FileFilter()
-        self.filter_asm.set_name("Assembly Files")
-        self.filter_asm.add_pattern("*.asm")
-        self.source_select.add_filter(self.filter_asm)
+#        self.filter_asm = gtk.FileFilter()
+#        self.filter_asm.set_name("Assembly Files")
+#        self.filter_asm.add_pattern("*.asm")
+#        self.source_select.add_filter(self.filter_asm)
         self.filter_hex = gtk.FileFilter()
         self.filter_hex.set_name("HEX Files")
         self.filter_hex.add_pattern("*.hex")
@@ -60,7 +61,7 @@ class GUI_Controller:
         self.filter_all.set_name("All Files")
         self.filter_all.add_pattern("*")
         self.source_select.add_filter(self.filter_all)
-        self.source_select.set_filter(self.filter_asm)
+        self.source_select.set_filter(self.filter_hex)
         self.source_select.connect("file-set", self.file_choose_cb)
         self.bar_layout.pack_start(self.source_select)
         self.source_file = ""
@@ -159,8 +160,8 @@ class GUI_Controller:
 
         self.layout.pack_start(self.status_layout, expand=False)
 
-        self.root.add(self.layout)
-        self.root.show_all()
+        self.add(self.layout)
+        self.show_all()
 
         # make a list of colours for the status label
         self.colours = {}
@@ -177,10 +178,10 @@ class GUI_Controller:
         gtk.main_quit()
         return
 
-    def run(self, *kw):
-        """ run is called to set off the GTK mainloop """
-        gtk.main()
-        return
+#    def run(self, *kw):
+#        """ run is called to set off the GTK mainloop """
+#        gtk.main()
+#        return
 
 #    def compile_cb(self, *kw):
 #        """ compile current project """
@@ -482,6 +483,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "-v":
             verbosity = True
-    mygui = GUI_Controller(verbosity)
-    mygui.run()
+    main_win = MainWindow(verbosity)
+    gtk.main()
     
