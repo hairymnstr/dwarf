@@ -67,10 +67,13 @@ class MainWindow(gtk.Window):
         self.source_file = ""
 
         # add a model selector
-        self.model = gtk.TextBuffer()
+        self.model = gtk.Entry()
         self.model.set_text("(none)")
-        self.model_display = gtk.TextView(self.model)
-        self.bar_layout.pack_start(self.model_display)
+        self.bar_layout.pack_start(self.model)
+#        self.model = gtk.TextBuffer()
+#        self.model.set_text("(none)")
+#        self.model_display = gtk.TextView(self.model)
+#        self.bar_layout.pack_start(self.model_display)
 
         # assemble a set of image buttons
         # Auto-detect PIC button
