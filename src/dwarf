@@ -136,10 +136,10 @@ class MainWindow(gtk.Window):
         self.button_layout.pack_start(self.stop_btn)
 
         # exit
-        self.exit_pb = gtk.Image()
-        self.exit_pb.set_from_file("data/exit.png")
-        self.exit_btn = gtk.Button()
-        self.exit_btn.set_image(self.exit_pb)
+        #self.exit_pb = gtk.Image()
+        #self.exit_pb.set_from_file("data/exit.png")
+        self.exit_btn = gtk.Button(None, gtk.STOCK_QUIT)
+        #self.exit_btn.set_image(self.exit_pb)
         self.exit_btn.connect("clicked", self.destroy_cb)
         self.button_layout.pack_start(self.exit_btn)
 
@@ -451,12 +451,12 @@ class MainWindow(gtk.Window):
         self.status_btn.set_sensitive(detail)
         return
 
-class Status_popup():
+class Status_popup(gtk.Window):
     def __init__(self):
-        self.win = gtk.Window()
-        self.win.set_title("Dwarf: Status Messages")
-        self.win.set_icon_from_file("data/icon.png")
-        self.win.connect("destroy", self.destroy_cb)
+        gtk.Window.__init__(self)
+        self.set_title("Dwarf: Status Messages")
+        self.set_icon_from_file("data/icon.png")
+        self.connect("destroy", self.destroy_cb)
 
         self.layout = gtk.VBox()
         self.text_view = gtk.Label()
@@ -467,15 +467,15 @@ class Status_popup():
         self.close_layout = gtk.HBox()
         self.close_layout.pack_end(self.close_btn, expand=False)
         self.layout.pack_start(self.close_layout, expand=False)
-        self.win.add(self.layout)
-        self.win.show_all()
+        self.add(self.layout)
+        self.show_all()
         return
 
     def destroy_cb(self, *kw):
         del(self)
 
     def close_btn_cb(self,*kw):
-        self.win.destroy()
+        self.destroy()
 
     def set_status_msg(self, msg):
         self.text_view.set_text(msg)
