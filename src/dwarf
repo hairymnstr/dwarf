@@ -21,7 +21,8 @@
 import pygtk
 pygtk.require("2.0")
 import gtk, gobject
-import os, sys, subprocess
+from subprocess import Popen, PIPE
+import os, sys, getopt
 
 VERSION = "0.1"
 
@@ -80,12 +81,12 @@ class MainWindow(gtk.Window):
     self.button_layout.pack_start(self.auto_btn)
 
     # Manual connect button
-    self.manual_pb = gtk.Image()
-    self.manual_pb.set_from_file("data/manual.png")
-    self.manual_btn = gtk.Button()
-    self.manual_btn.set_image(self.manual_pb)
-    self.manual_btn.connect("clicked", self.manual_cb)
-    self.button_layout.pack_start(self.manual_btn)
+    #self.manual_pb = gtk.Image()
+    #self.manual_pb.set_from_file("data/manual.png")
+    #self.manual_btn = gtk.Button()
+    #self.manual_btn.set_image(self.manual_pb)
+    #self.manual_btn.connect("clicked", self.manual_cb)
+    #self.button_layout.pack_start(self.manual_btn)
         
     # program
     self.program_pb = gtk.Image()
@@ -158,8 +159,10 @@ class MainWindow(gtk.Window):
     self.colours["green"] = gtk.gdk.Color(0,65535,0)
     self.colours["yellow"] = gtk.gdk.Color(65535,65535,0)
 
-    # finally: initialise communications
-    self.connect_pk2()
+    # make a pickit class to control the programmer
+    self.prog = PicKit(self, self.verbosity)
+    self.prog.connect()
+
     return
 
   def destroy_cb(self, *kw):
@@ -169,7 +172,7 @@ class MainWindow(gtk.Window):
 
   def auto_cb(self, *kw):
     """ auto-connect to the pickit and detect the attached PIC """
-    self.connect_pk2()
+    self.prog.connect()
     return
 
   def manual_cb(self, *kw):
@@ -203,27 +206,26 @@ class MainWindow(gtk.Window):
 #                    return
 
     # now do the actual programming bit
-    if self.verbosity:
-      print PK2CMD + " -P%s -F%s -M" %
-(self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()),
-hex_name)
-    pr = subprocess.Popen("%s -P%s -F%s -M" % (PK2CMD,
-self.model.get_text(self.model.get_start_iter(),
-self.model.get_end_iter()),hex_name.replace(" ","\\ ")), shell=True, stdout =
-subprocess.PIPE)
-    pr.wait()
-    output = pr.stdout.read()
-    self.status_msg = output
-    if output.find("Program Succeeded") > -1:
-      self.status_label.set_text("Program Succeeded")
-      self.status_btn.set_sensitive(True)
-      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(0,65535,0))
-    else:
-      self.status_label.set_text("Program Failed")
-      self.status_btn.set_sensitive(True)
-      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
-    if self.verbosity:
-      print output
+    self.prog.program(hex_name)
+#if self.verbosity:
+#      print PK2CMD + " -P%s -F%s -M" % (self.model.get_text(), hex_name)
+#    pr = Popen("%s -P%s -F%s -M" % (PK2CMD,
+#self.model.get_text(self.model.get_start_iter(),
+#self.model.get_end_iter()),hex_name.replace(" ","\\ ")), shell=True, stdout =
+#subprocess.PIPE)
+#    pr.wait()
+#    output = pr.stdout.read()
+#    self.status_msg = output
+#    if output.find("Program Succeeded") > -1:
+#      self.status_label.set_text("Program Succeeded")
+#      self.status_btn.set_sensitive(True)
+#      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(0,65535,0))
+#    else:
+#      self.status_label.set_text("Program Failed")
+#      self.status_btn.set_sensitive(True)
+#      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
+#    if self.verbosity:
+#      print output
     return
 
   def read_cb(self, *kw):
@@ -240,66 +242,54 @@ subprocess.PIPE)
     self.save_chooser.connect("response", self.read_selected_cb)
     self.save_chooser.set_do_overwrite_confirmation(True)
     self.save_chooser.show()
-    self.root.set_sensitive(False)
+    self.set_sensitive(False)
     return
 
   def read_selected_cb(self, widget, response_id):
     if response_id in (gtk.RESPONSE_CLOSE, -4):
-      self.root.set_sensitive(True)
+      self.set_sensitive(True)
       del self.save_chooser
     elif response_id == gtk.RESPONSE_CANCEL:
-      self.root.set_sensitive(True)
+      self.set_sensitive(True)
       self.save_chooser.destroy()
       del self.save_chooser
     elif response_id == gtk.RESPONSE_ACCEPT:
-      if self.verbosity:
-        print PK2CMD + " -P" + self.model.get_text(
-        self.model.get_start_iter(),
-        self.model.get_end_iter()) + " -GF" + self.save_chooser.get_filename()
-        pr = subprocess.Popen(
-          (PK2CMD + " -P" + self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) +
-           " -GF" + self.save_chooser.get_filename()),
-           shell = True,
-           stdout = subprocess.PIPE)
-        pr.wait()
-        self.save_chooser.destroy()
-        del self.save_chooser
-        self.root.set_sensitive(True)
+      self.prog.read_device(widget.get_filename())
+      self.save_chooser.destroy()
+      del self.save_chooser
+      self.set_sensitive(True)
     return
 
   def run_cb(self, *kw):
     """ Turn power on and MCLR off to let the project run powered by the PicKit
     """
-    pr = subprocess.Popen(PK2CMD + " -P" +
-self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + "
--R -T", shell=True, stdout=subprocess.PIPE)
-    pr.wait()
-    if self.verbosity:
-      print PK2CMD + " -P" +
-self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()) + "
--R -T"
+    self.prog.run()
+#pr = Popen(PK2CMD + " -P" + self.model.get_text() + " -R -T", shell=True,
+#              stdout=PIPE)
+#    pr.wait()
+#    if self.verbosity:
+#      print PK2CMD + " -P" + self.model.get_text() + " -R -T"
     return
 
   def stop_cb(self, *kw):
     """ Pause the PIC again with MCLR asserted and power off. """
-    pr = subprocess.Popen(PK2CMD + " -P" +
-self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter()),
-shell=True, stdout=subprocess.PIPE)
-    pr.wait()
-    if self.verbosity:
-      print PK2CMD + " -P" +
-self.model.get_text(self.model.get_start_iter(), self.model.get_end_iter())
+#    pr = Popen(PK2CMD + " -P" + self.model.get_text(), shell=True,
+#              stdout=PIPE)
+#    pr.wait()
+#    if self.verbosity:
+#      print PK2CMD + " -P" + self.model.get_text()
+    self.prog.stop()
     return
 
   def file_choose_cb(self, *kw):
     """ Update the local variable containing the filename. """
     self.source_file = self.source_select.get_filename()
-    self.root.set_title("Dwarf %s: " % VERSION +
-self.source_file.split("/")[-1])
+    self.set_title("Dwarf %s: %s" % (VERSION,
+                        os.path.split(self.source_file)[1]))
     # do status
     self.show_status("OK, selected a binary file.", "green", False)
     if self.verbosity:
-      print "File chosen:", self.source_select.get_filename()
+      print "File chosen:", self.source_file
     return
 
   def status_popup_cb(self, *kw):
@@ -309,117 +299,30 @@ self.source_file.split("/")[-1])
     self.popup.set_status_msg(self.status_msg)
     return
 
-  def connect_pk2(self, auto=True):
-    """ Try to connect to the pic-kit and identify the device attached. """
-    if auto:
-      cmd = PK2CMD + " -P"
-    else:
-      if self.model.get_text(self.model.get_start_iter(),
-self.model.get_end_iter()) == "(none)":
-        self.status_label.set_text("Can't manually connect without device
-specified.")
-        self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(65535,0,0))
-        self.status_btn.set_sensitive(False)
-        return
-      elif self.model.get_text(self.model.get_start_iter(),
-self.model.get_end_iter()).find(" ") > -1:
-        self.show_status("Not a valid chip model, don't use
-SPACE","red",False)
-        return
-      cmd = PK2CMD + " -P" +
-self.model.get_text(self.model.get_start_iter(),self.model.get_end_iter()) + "
--I"
-    pr = subprocess.Popen(cmd, shell=True, stdout = subprocess.PIPE)
-    pr.wait()
-        
-    output = pr.stdout.read()
-        
-    if output.find("No PICkit 2 found.") > -1:
-      # the PICKit wasn't found so de-activate the related functions
-      self.program_btn.set_sensitive(False)
-      self.run_btn.set_sensitive(False)
-      self.stop_btn.set_sensitive(False)
-          
-      # and let the user know what's going on
-      self.status_label.set_text("PICKit 2 Not Found")
-      self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(65535,65535,0))
-      self.status_btn.set_sensitive(False)
-    elif auto:
-      if output.find("No known part found") > -1:
-        # Auto detect failed, even though PK2 is plugged into PC
-        # set the model to none and disable programming
-        self.model.set_text("(none)")
-        self.program_btn.set_sensitive(False)
-        self.run_btn.set_sensitive(False)
-        self.stop_btn.set_sensitive(False)
+#  def connect_pk2(self, auto=True):
 
-        # then let the user know what's going on
-        self.status_label.set_text("Auto Detect Failed")
-        self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(65535,65535,0))
-        self.status_btn.set_sensitive(False)
-      else:
-        # find the string from the description
-        self.model.set_text(output[output.find("Found part ")+len("Found
-part "):output.find(".",output.find("Found part"))])
-        self.program_btn.set_sensitive(True)
-        self.run_btn.set_sensitive(True)
-        self.stop_btn.set_sensitive(True)
 
-        # do the status label
-        self.status_label.set_text("Detected a " +
-output[output.find("Found part ")+len("Found part
-"):output.find(".",output.find("Found part"))])
-        self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(0,65535,0))
-        self.status_btn.set_sensitive(False)
-      else:
-        # manual detect
-        # find the device name
-        dev = output[output.find("Device Name = ") + len("Device Name =
-"):output.find("\n",output.find("Device Name"))]
-      if output.find("Could not find device") > -1:
-        # there was no device found
-        self.program_btn.set_sensitive(False)
-        self.run_btn.set_sensitive(False)
-        self.stop_btn.set_sensitive(False)
-
-        # set status
-        self.show_status("No device found.","yellow",False)
-      elif dev ==
-self.model.get_text(self.model.get_start_iter(),self.model.get_end_iter()):
-        # the found target matches the manually specified device.
-        # enable programming functions
-        self.program_btn.set_sensitive(True)
-        self.run_btn.set_sensitive(True)
-        self.stop_btn.set_sensitive(True)
-
-        # then setup the status label
-        self.status_label.set_text("Detected a " + dev)
-        self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(0,65535,0))
-        self.status_btn.set_sensitive(False)
-      else:
-        # the found target is a different device, disabel and display
-found type
-        self.program_btn.set_sensitive(False)
-        self.run_btn.set_sensitive(False)
-        self.stop_btn.set_sensitive(False)
-
-        # status label
-        self.status_label.set_text("Warning: " + dev + " found.")
-        self.status_bg.modify_bg(gtk.STATE_NORMAL,
-gtk.gdk.Color(65535,65535,0))
-        self.status_btn.set_sensitive(False)
-    return
-
-  def show_status(self,msg,col,detail):
-    """ helper function to set the status bar message etc. """
+#  def show_status(self,msg,col,detail):
+#    """ helper function to set the status bar message etc. """
+#    self.status_label.set_text(msg)
+#    self.status_bg.modify_bg(gtk.STATE_NORMAL, self.colours[col])
+#    self.status_btn.set_sensitive(detail)
+#    return
+    
+  def status(self, msg, details, colour):
     self.status_label.set_text(msg)
-    self.status_bg.modify_bg(gtk.STATE_NORMAL, self.colours[col])
-    self.status_btn.set_sensitive(detail)
+    self.status_bg.modify_bg(gtk.STATE_NORMAL, self.colours[colour])
+    self.status_msg = details
+    if details != "":
+      self.status_btn.set_sensitive(True)
+    else:
+      self.status_btn.set_sensitive(False)
+    
+  def action_sensitive(self, yes):
+    self.program_btn.set_sensitive(yes)
+    self.read_btn.set_sensitive(yes)
+    self.stop_btn.set_sensitive(yes)
+    self.run_btn.set_sensitive(yes)
     return
 
 class Status_popup(gtk.Window):
@@ -451,18 +354,82 @@ class Status_popup(gtk.Window):
     self.text_view.set_text(msg)
     return
 
-class Pickit:
-  def __init__(self, verbosity):
-    pass
-  
+class PicKit:
+  def __init__(self, parent, verbosity):
+    self.verbosity = verbosity
+    self.cmd = PK2CMD
+    self.parent = parent
+    
+  def set_device(self, device):
+    self._device = device
+    
+  def get_device(self, device):
+    return self._device
+
   def connect(self):
+    opts = ["-P"]
+    output = self._run_command(opts)
     
+    if output.find("No PICkit 2 found.") > -1:
+      # the PICKit wasn't found so de-activate the related functions
+      self.device = ""
+      self.parent.model.set_text("(none)")
+      self.parent.status("PICKit 2 Not Found", "", "yellow", False)
+      self.parent.action_sensitive(False)
+    elif output.find("No known part found") > -1:
+      # Auto detect failed, even though PK2 is plugged into PC
+      # set the model to none and disable programming
+      self.device = ""
+      self.parent.model.set_text("(none)")
+      self.parent.status("No part found", "", "yellow")
+      self.parent.action_sensitive(False)
+    else:
+      # find the string from the description
+      self.device = output[(output.find("Found part ") + 
+                            len("Found part ")):(
+                            output.find(".",output.find("Found part")))]
+      self.parent.model.set_text(self.device)
+      self.parent.status("Detected a " + self.device, "", "green")
+      self.parent.action_sensitive(True)
+
   def program(self, hexfile):
-  
+    opts = []
+    opts.append("-P" + self.device)
+    opts.append("-F" + hexfile)
+    opts.append("-M")
+    output = self._run_command(opts)
+    if output.find("Program Succeeded") > -1:
+      self.parent.status("Program Succeeded", output, "green")
+    else:
+      self.parent.status("Program Failed", output, "red")
+    if self.verbosity:
+      print output
+
   def read_device(self, hexfile):
-    
+    opts = []
+    opts.append("-P" + self.device)
+    opts.append("-GF" + hexfile)
+    self._run_command(opts)
+    return
+        
+  def run(self):
+    opts = []
+    opts.append("-P" + self.device)
+    opts.append("-R")
+    opts.append("-T")
+    self._run_command(opts)
+    return
+
+  def stop(self):
+    opts = []
+    opts.append("-P" + self.device)
+    self._run_command(opts)
+    return
+
   def _run_command(self, args):
-    cmd = self.cmd + " ".join(args)
+    cmd = self.cmd + " " + " ".join(args)
+    if self.verbosity:
+      print cmd
     pr = Popen(cmd, shell=True, stdout=PIPE)
     pr.wait()
     output = pr.stdout.read()
@@ -473,7 +440,29 @@ def usage():
       wrongly used. """
   print "dwarf [options] [filename]"
   print ""
+  print ("Starts the Dwarf GUI application.  The optional filename is a " +
+         "standard PIC hex file which will be loaded by the application " +
+         "ready for programming on startup.")
   print ""
+  print "Options"
+  print "  -v, --verbose   Prints commands sent to PK2CMD for debugging."
+  print "  -h, --help      Prints this help information."
+  print ""
+  print """Copyright (C) 2010  Nathan Dumont (hairymnstr@gmail.com)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>."""
+
   return
 
 if __name__ == "__main__":
@@ -492,10 +481,10 @@ if __name__ == "__main__":
     elif o in ("-v", "--verbose"):
       verbosity = True
   main_win = MainWindow(verbosity)
-  
+
   if len(args) == 1:
     main_win.set_file(args[0])
   elif len(args) > 1:
     print "Warning, can only select one file, first argument taken."
-    
+
   gtk.main()
