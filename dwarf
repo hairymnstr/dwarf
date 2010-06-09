@@ -330,11 +330,12 @@ class MainWindow(gtk.Window):
 
   def update_active(self, reason, value):
     self.ready[reason] = value
-    act = self.ready['file'] and self.ready['device']
-    self.program_btn.set_sensitive(act)
-    self.read_btn.set_sensitive(act)
-    self.stop_btn.set_sensitive(act)
-    self.run_btn.set_sensitive(act)
+    # only enable the program button if both the device and file are ready
+    self.program_btn.set_sensitive(self.ready['file'] and self.ready['device'])
+    # enable the read/run/stop buttons if the device is ready
+    self.read_btn.set_sensitive(self.ready['device'])
+    self.stop_btn.set_sensitive(self.ready['device'])
+    self.run_btn.set_sensitive(self.ready['device'])
     return
 
 class Status_popup(gtk.Window):
@@ -386,7 +387,7 @@ class PicKit:
       # the PICKit wasn't found so de-activate the related functions
       self.device = ""
       self.parent.model.set_text("(none)")
-      self.parent.status("PICKit 2 Not Found", "", "yellow", False)
+      self.parent.status("PICKit 2 Not Found", "", "yellow")
       self.parent.update_active('device', False)
     elif output.find("No known part found") > -1:
       # Auto detect failed, even though PK2 is plugged into PC
