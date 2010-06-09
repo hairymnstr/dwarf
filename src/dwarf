@@ -38,6 +38,12 @@ class MainWindow(gtk.Window):
     gtk.Window.__init__(self, type=gtk.WINDOW_TOPLEVEL)
     self.set_title("Dwarf %s" % VERSION)
 
+    # keep track of readiness, only enable programming buttons if a file has
+    # been selected and the PICKit2 is ready
+    self.ready = {}
+    self.ready['file'] = False
+    self.ready['device'] = False
+
     self.set_icon_from_file("data/icon.png")
     self.connect("destroy", self.destroy_cb)
     self.layout=gtk.VBox()
@@ -46,30 +52,22 @@ class MainWindow(gtk.Window):
     self.button_layout = gtk.HBox()
 
     # build file selector
-    self.source_select = gtk.FileChooserButton("Source File")
-    self.source_select.set_current_folder(os.path.expanduser("~/"))
-    self.source_select.set_size_request(150,-1)
-#        self.filter_asm = gtk.FileFilter()
-#        self.filter_asm.set_name("Assembly Files")
-#        self.filter_asm.add_pattern("*.asm")
-#        self.source_select.add_filter(self.filter_asm)
-    self.filter_hex = gtk.FileFilter()
-    self.filter_hex.set_name("HEX Files")
-    self.filter_hex.add_pattern("*.hex")
-    self.source_select.add_filter(self.filter_hex)
-    self.filter_all = gtk.FileFilter()
-    self.filter_all.set_name("All Files")
-    self.filter_all.add_pattern("*")
-    self.source_select.add_filter(self.filter_all)
-    self.source_select.set_filter(self.filter_hex)
-    self.source_select.connect("file-set", self.file_choose_cb)
-    self.bar_layout.pack_start(self.source_select)
+    self.open_btn = gtk.Button(None, gtk.STOCK_OPEN)
+    self.open_btn.connect("clicked", self.open_cb)
+    self.bar_layout.pack_start(self.open_btn)
     self.source_file = ""
 
     # add a model selector
-    self.model = gtk.Entry()
+    self.model = gtk.Label()
+    self.model_bg = gtk.Frame()
+    self.model_bg_bg = gtk.EventBox()
+    self.model_bg_bg.add(self.model_bg)
+    self.model_bg_bg.modify_bg(gtk.STATE_NORMAL, 
+                            gtk.gdk.Color(65535, 65535, 65535))
+    self.model.set_size_request(100,-1)
     self.model.set_text("(none)")
-    self.bar_layout.pack_start(self.model)
+    self.model_bg.add(self.model)
+    self.bar_layout.pack_start(self.model_bg_bg)
 
     # assemble a set of image buttons
     # Auto-detect PIC button
@@ -180,52 +178,64 @@ class MainWindow(gtk.Window):
     self.connect_pk2(False)
     return
 
+  def open_cb(self, *kw):
+    """ Opens a hex file for programming to the device. """
+    self.source_select = gtk.FileChooserDialog(
+                "Open File",
+                self,
+                gtk.FILE_CHOOSER_ACTION_OPEN,
+                (gtk.STOCK_OPEN,
+                 gtk.RESPONSE_ACCEPT,
+                 gtk.STOCK_CANCEL,
+                 gtk.RESPONSE_CANCEL))
+    # set the starting folder for the open dialog
+    if self.source_file == "":
+      # if no file is selected yet, start in home folder
+      self.source_select.set_current_folder(os.path.expanduser("~/"))
+    else:
+      # otherwise start in same directory as current file
+      self.source_select.set_current_folder(
+              os.path.split(self.source_file)[0])
+
+    # make up filters for hex files and all files
+    self.filter_hex = gtk.FileFilter()
+    self.filter_hex.set_name("HEX Files")
+    self.filter_hex.add_pattern("*.hex")
+    self.source_select.add_filter(self.filter_hex)
+    self.filter_all = gtk.FileFilter()
+    self.filter_all.set_name("All Files")
+    self.filter_all.add_pattern("*")
+    self.source_select.add_filter(self.filter_all)
+    self.source_select.set_filter(self.filter_hex)
+
+    # connect and show the dialog
+    self.source_select.connect("response", self.open_file_cb)
+    self.source_select.show()
+    self.set_sensitive(False)
+    return
+ 
+  def open_file_cb(self, widget, response):
+    if response == gtk.RESPONSE_ACCEPT:
+      # user made a choice
+      self.source_file = self.source_select.get_filename()
+      self.update_active('file', True)
+      fname = os.path.split(self.source_file)[1]
+      self.set_title("Dwarf %s: %s" % (VERSION, fname))
+    self.source_select.destroy()
+    del self.filter_all
+    del self.filter_hex
+    del self.source_select
+    self.set_sensitive(True)
+    return
+
   def program_cb(self, *kw):
     """ download the current binary file to a PIC """
-    # first, check if there's a binary file ready (and that it's newer than
-    # the source determine what the hexfile name should be:
-    hex_name = os.path.splitext(self.source_file)[0] + ".hex"
-    if not os.path.isfile(hex_name):
-      self.status_label.set_text("Hex file not found")
-      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
-      self.status_btn.set_sensitive(False)
+    if (not self.source_file == "") and (not os.path.isfile(self.source_file)):
+      self.status("Hex file not found", "", "red")
+      self.action_sensitive(False)
       return
-#    if not (hex_name == self.source_file):
-#      # if the selected file is the binary file don't worry about compiler
-#      # warning
-#      hex_age = os.path.getmtime(hex_name)
-#      src_age = os.path.getmtime(self.source_file)
-#      if src_age > hex_age:
-#                # the source has been editted and not compiled, emit a warning
-#                msg_box = gtk.MessageDialog(type=gtk.MESSAGE_QUESTION,
-#buttons=gtk.BUTTONS_OK_CANCEL, message_format="Source is newer than
-#binary,\nprogram without compiling?")
-#                response = msg_box.run()
-#                msg_box.destroy()
-#                if response == gtk.RESPONSE_CANCEL:
-#                    return
-
     # now do the actual programming bit
-    self.prog.program(hex_name)
-#if self.verbosity:
-#      print PK2CMD + " -P%s -F%s -M" % (self.model.get_text(), hex_name)
-#    pr = Popen("%s -P%s -F%s -M" % (PK2CMD,
-#self.model.get_text(self.model.get_start_iter(),
-#self.model.get_end_iter()),hex_name.replace(" ","\\ ")), shell=True, stdout =
-#subprocess.PIPE)
-#    pr.wait()
-#    output = pr.stdout.read()
-#    self.status_msg = output
-#    if output.find("Program Succeeded") > -1:
-#      self.status_label.set_text("Program Succeeded")
-#      self.status_btn.set_sensitive(True)
-#      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(0,65535,0))
-#    else:
-#      self.status_label.set_text("Program Failed")
-#      self.status_btn.set_sensitive(True)
-#      self.status_bg.modify_bg(gtk.STATE_NORMAL,gtk.gdk.Color(65535,0,0))
-#    if self.verbosity:
-#      print output
+    self.prog.program(self.source_file)
     return
 
   def read_cb(self, *kw):
@@ -317,12 +327,14 @@ class MainWindow(gtk.Window):
       self.status_btn.set_sensitive(True)
     else:
       self.status_btn.set_sensitive(False)
-    
-  def action_sensitive(self, yes):
-    self.program_btn.set_sensitive(yes)
-    self.read_btn.set_sensitive(yes)
-    self.stop_btn.set_sensitive(yes)
-    self.run_btn.set_sensitive(yes)
+
+  def update_active(self, reason, value):
+    self.ready[reason] = value
+    act = self.ready['file'] and self.ready['device']
+    self.program_btn.set_sensitive(act)
+    self.read_btn.set_sensitive(act)
+    self.stop_btn.set_sensitive(act)
+    self.run_btn.set_sensitive(act)
     return
 
 class Status_popup(gtk.Window):
@@ -375,14 +387,14 @@ class PicKit:
       self.device = ""
       self.parent.model.set_text("(none)")
       self.parent.status("PICKit 2 Not Found", "", "yellow", False)
-      self.parent.action_sensitive(False)
+      self.parent.update_active('device', False)
     elif output.find("No known part found") > -1:
       # Auto detect failed, even though PK2 is plugged into PC
       # set the model to none and disable programming
       self.device = ""
       self.parent.model.set_text("(none)")
       self.parent.status("No part found", "", "yellow")
-      self.parent.action_sensitive(False)
+      self.parent.update_active('device', False)
     else:
       # find the string from the description
       self.device = output[(output.find("Found part ") + 
@@ -390,7 +402,7 @@ class PicKit:
                             output.find(".",output.find("Found part")))]
       self.parent.model.set_text(self.device)
       self.parent.status("Detected a " + self.device, "", "green")
-      self.parent.action_sensitive(True)
+      self.parent.update_active('device', True)
 
   def program(self, hexfile):
     opts = []
@@ -440,15 +452,15 @@ def usage():
       wrongly used. """
   print "dwarf [options] [filename]"
   print ""
-  print ("Starts the Dwarf GUI application.  The optional filename is a " +
-         "standard PIC hex file which will be loaded by the application " +
-         "ready for programming on startup.")
+  print "Starts the Dwarf GUI application.  The optional filename is a "
+  print "standard PIC hex file which will be loaded by the application "
+  print "ready for programming on startup."
   print ""
   print "Options"
   print "  -v, --verbose   Prints commands sent to PK2CMD for debugging."
   print "  -h, --help      Prints this help information."
   print ""
-  print """Copyright (C) 2010  Nathan Dumont (hairymnstr@gmail.com)
+  print """    Copyright (C) 2010  Nathan Dumont (hairymnstr@gmail.com)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
