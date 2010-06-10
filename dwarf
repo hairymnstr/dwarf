@@ -26,6 +26,7 @@ import os, sys, getopt
 
 VERSION = "0.1"
 
+APP_FOLDER = sys.path[0]
 # define the command here.
 # If you want to run the pk2cmd app as sudo add sudo here
 PK2CMD = "pk2cmd"
@@ -44,7 +45,7 @@ class MainWindow(gtk.Window):
     self.ready['file'] = False
     self.ready['device'] = False
 
-    self.set_icon_from_file("data/icon.png")
+    self.set_icon_from_file(os.path.join(APP_FOLDER, "data/icon.png"))
     self.connect("destroy", self.destroy_cb)
     self.layout=gtk.VBox()
 
@@ -72,7 +73,7 @@ class MainWindow(gtk.Window):
     # assemble a set of image buttons
     # Auto-detect PIC button
     self.auto_pb = gtk.Image()
-    self.auto_pb.set_from_file("data/auto.png")
+    self.auto_pb.set_from_file(os.path.join(APP_FOLDER, "data/auto.png"))
     self.auto_btn = gtk.Button()
     self.auto_btn.set_image(self.auto_pb)
     self.auto_btn.connect("clicked", self.auto_cb)
@@ -88,7 +89,7 @@ class MainWindow(gtk.Window):
         
     # program
     self.program_pb = gtk.Image()
-    self.program_pb.set_from_file("data/program.png")
+    self.program_pb.set_from_file(os.path.join(APP_FOLDER, "data/program.png"))
     self.program_btn = gtk.Button()
     self.program_btn.set_image(self.program_pb)
     self.program_btn.connect("clicked", self.program_cb)
@@ -97,7 +98,7 @@ class MainWindow(gtk.Window):
         
     # Read
     self.read_pb = gtk.Image()
-    self.read_pb.set_from_file("data/read.png")
+    self.read_pb.set_from_file(os.path.join(APP_FOLDER, "data/read.png"))
     self.read_btn = gtk.Button()
     self.read_btn.set_image(self.read_pb)
     self.read_btn.connect("clicked", self.read_cb)
@@ -106,7 +107,7 @@ class MainWindow(gtk.Window):
       
     # run
     self.run_pb = gtk.Image()
-    self.run_pb.set_from_file("data/run.png")
+    self.run_pb.set_from_file(os.path.join(APP_FOLDER, "data/run.png"))
     self.run_btn = gtk.Button()
     self.run_btn.set_image(self.run_pb)
     self.run_btn.connect("clicked", self.run_cb)
@@ -115,7 +116,7 @@ class MainWindow(gtk.Window):
 
     # stop
     self.stop_pb = gtk.Image()
-    self.stop_pb.set_from_file("data/stop.png")
+    self.stop_pb.set_from_file(os.path.join(APP_FOLDER, "data/stop.png"))
     self.stop_btn = gtk.Button()
     self.stop_btn.set_image(self.stop_pb)
     self.stop_btn.connect("clicked", self.stop_cb)
@@ -322,7 +323,7 @@ class Status_popup(gtk.Window):
   def __init__(self):
     gtk.Window.__init__(self)
     self.set_title("Dwarf: Status Messages")
-    self.set_icon_from_file("data/icon.png")
+    self.set_icon_from_file(os.path.join(APP_FOLDER, "data/icon.png"))
     self.connect("destroy", self.destroy_cb)
 
     self.layout = gtk.VBox()
