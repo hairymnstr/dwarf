@@ -24,7 +24,7 @@ import gtk, gobject
 from subprocess import Popen, PIPE
 import os, sys, getopt
 
-VERSION = "0.1"
+VERSION = "0.2beta1"
 
 APP_FOLDER = sys.path[0]
 # define the command here.
