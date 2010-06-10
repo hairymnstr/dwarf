@@ -274,20 +274,10 @@ class MainWindow(gtk.Window):
     """ Turn power on and MCLR off to let the project run powered by the PicKit
     """
     self.prog.run()
-#pr = Popen(PK2CMD + " -P" + self.model.get_text() + " -R -T", shell=True,
-#              stdout=PIPE)
-#    pr.wait()
-#    if self.verbosity:
-#      print PK2CMD + " -P" + self.model.get_text() + " -R -T"
     return
 
   def stop_cb(self, *kw):
     """ Pause the PIC again with MCLR asserted and power off. """
-#    pr = Popen(PK2CMD + " -P" + self.model.get_text(), shell=True,
-#              stdout=PIPE)
-#    pr.wait()
-#    if self.verbosity:
-#      print PK2CMD + " -P" + self.model.get_text()
     self.prog.stop()
     return
 
@@ -309,16 +299,6 @@ class MainWindow(gtk.Window):
     self.popup.set_status_msg(self.status_msg)
     return
 
-#  def connect_pk2(self, auto=True):
-
-
-#  def show_status(self,msg,col,detail):
-#    """ helper function to set the status bar message etc. """
-#    self.status_label.set_text(msg)
-#    self.status_bg.modify_bg(gtk.STATE_NORMAL, self.colours[col])
-#    self.status_btn.set_sensitive(detail)
-#    return
-    
   def status(self, msg, details, colour):
     self.status_label.set_text(msg)
     self.status_bg.modify_bg(gtk.STATE_NORMAL, self.colours[colour])
@@ -380,9 +360,30 @@ class PicKit:
     return self._device
 
   def connect(self):
+    # first check that pk2cmd is installed
+    pr = Popen("which pk2cmd", shell=True, stdout=PIPE)
+    pr.wait()
+    if pr.stdout.read() == "":
+      self.device = ""
+      self.parent.model.set_text("(none)")
+      self.parent.status("pk2cmd not installed!!!", "", "red")
+      self.parent.update_active('device', False)
+      self.msg = gtk.MessageDialog(parent=self.parent,
+                                   buttons=gtk.BUTTONS_CLOSE,
+                                   message_format=(
+      "The pk2cmd command line program needs to be installed before you can " +
+      "access the PIC from this application.  For instructions on installing" +
+      " pk2cmd visit http://tuxtronics.com/node/3"))
+      self.msg.set_title("pk2cmd Required!")
+      self.msg.connect("response", self.msg_closed_cb)
+      self.msg.show()
+      self.parent.set_sensitive(False)
+
+      return
+
     opts = ["-P"]
     output = self._run_command(opts)
-    
+     
     if output.find("No PICkit 2 found.") > -1:
       # the PICKit wasn't found so de-activate the related functions
       self.device = ""
@@ -404,6 +405,12 @@ class PicKit:
       self.parent.model.set_text(self.device)
       self.parent.status("Detected a " + self.device, "", "green")
       self.parent.update_active('device', True)
+
+  def msg_closed_cb(self, widget, response):
+    self.msg.destroy()
+    del self.msg
+    self.parent.set_sensitive(True)
+    return
 
   def program(self, hexfile):
     opts = []
